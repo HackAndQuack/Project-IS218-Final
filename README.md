@@ -7,10 +7,11 @@ server-rendered web UI.
 
 - **API**: `POST /calculations`, `GET /calculations`, `GET /calculations/{id}`,
   `PUT /calculations/{id}`, `DELETE /calculations/{id}` — all scoped to the authenticated user.
-  Interactive docs at `/docs` (Swagger UI) and `/redoc`.
+  `GET /users/me` and `PUT /users/me` for profile info, `PUT /users/me/password` for password
+  changes. Interactive docs at `/docs` (Swagger UI) and `/redoc`.
 - **Web UI**: `/`, `/login`, `/register`, `/dashboard` (browse + add), `/dashboard/view/{id}`
   (read), `/dashboard/edit/{id}` (edit), with delete available from both the dashboard and the
-  view page.
+  view page. `/profile` for updating account info and changing your password.
 
 ## Running the app
 

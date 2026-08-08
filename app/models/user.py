@@ -95,9 +95,12 @@ class User(Base):
                         onupdate=utcnow,  # Auto-update on record changes
                         nullable=False)
     
-    last_login = Column(DateTime(timezone=True), 
+    last_login = Column(DateTime(timezone=True),
                         nullable=True)  # Track login activity
-    
+
+    password_changed_at = Column(DateTime(timezone=True),
+                                 nullable=True)  # Track password changes
+
     # Relationships - one-to-many with Calculation model
     calculations = relationship("Calculation", 
                                back_populates="user", 
