@@ -69,6 +69,28 @@ pytest tests/e2e/test_calculation_bread_e2e.py -v
 
 Coverage reports are generated automatically per `pytest.ini` (terminal + `htmlcov/`).
 
+## Database migrations
+
+Schema changes are managed with [Alembic](https://alembic.sqlalchemy.org/) (`alembic.ini`,
+`migrations/`). `migrations/env.py` reads the target schema from `app.database.Base.metadata` and
+the connection string from `settings.DATABASE_URL`, so no separate configuration is needed beyond
+what's already in `app/core/config.py`.
+
+```bash
+# Apply all pending migrations (creates tables on a fresh database)
+alembic upgrade head
+
+# After changing a SQLAlchemy model, generate a migration for the diff
+alembic revision --autogenerate -m "describe the change"
+
+# Roll back the most recent migration
+alembic downgrade -1
+```
+
+Note: the app's `lifespan` startup hook and the test suite (`tests/conftest.py`) still use
+`Base.metadata.create_all`/`drop_all` directly for convenience — Alembic is the source of truth for
+real deployments, but tests intentionally keep their own fast, disposable schema setup.
+
 ## CI/CD
 
 `.github/workflows/ci.yml` runs on every push/PR to `main`:
