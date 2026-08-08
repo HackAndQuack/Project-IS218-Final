@@ -1,0 +1,101 @@
+# Calculations App
+
+A FastAPI web application with JWT-based authentication and full BREAD (Browse, Read, Edit, Add,
+Delete) support for calculations. Users register, log in, and manage a personal history of
+addition, subtraction, multiplication, and division calculations through both a REST API and a
+server-rendered web UI.
+
+- **API**: `POST /calculations`, `GET /calculations`, `GET /calculations/{id}`,
+  `PUT /calculations/{id}`, `DELETE /calculations/{id}` — all scoped to the authenticated user.
+  Interactive docs at `/docs` (Swagger UI) and `/redoc`.
+- **Web UI**: `/`, `/login`, `/register`, `/dashboard` (browse + add), `/dashboard/view/{id}`
+  (read), `/dashboard/edit/{id}` (edit), with delete available from both the dashboard and the
+  view page.
+
+## Running the app
+
+### With Docker (recommended)
+
+```bash
+docker-compose up --build
+```
+
+This starts the FastAPI app on [http://localhost:8000](http://localhost:8000), a PostgreSQL 17
+database, and pgAdmin at [http://localhost:5050](http://localhost:5050)
+(`admin@example.com` / `admin`). Tables are created automatically on startup.
+
+### Without Docker
+
+1. Have a PostgreSQL instance available and export a `DATABASE_URL` (or create a `.env` file —
+   see `app/core/config.py` for all supported settings):
+
+   ```bash
+   export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/fastapi_db
+   export JWT_SECRET_KEY=change-me-to-something-random-32-chars-plus
+   export JWT_REFRESH_SECRET_KEY=change-me-too-something-random-32-chars
+   ```
+
+2. Install dependencies and run the app:
+
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate        # Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   uvicorn app.main:app --reload
+   ```
+
+3. Visit [http://localhost:8000](http://localhost:8000).
+
+## Running tests locally
+
+The test suite has three layers: unit tests (`tests/unit`), API integration tests
+(`tests/integration`), and browser-driven Playwright E2E tests (`tests/e2e`). The E2E and
+integration tests boot a real `uvicorn` server against your `DATABASE_URL`, so a reachable
+PostgreSQL instance is required (e.g. `docker-compose up db`).
+
+```bash
+pip install -r requirements.txt
+playwright install --with-deps chromium
+
+# Run everything (unit + integration + e2e)
+pytest
+
+# Skip the slower, browser-driven E2E tests
+pytest -m "not e2e"
+
+# Only the BREAD end-to-end UI tests
+pytest tests/e2e/test_calculation_bread_e2e.py -v
+```
+
+Coverage reports are generated automatically per `pytest.ini` (terminal + `htmlcov/`).
+
+## CI/CD
+
+`.github/workflows/ci.yml` runs on every push/PR to `main`:
+
+1. **test** — installs dependencies, installs Playwright's Chromium browser, spins up a
+   PostgreSQL service container, and runs the full `pytest` suite.
+2. **docker-build-push** — on pushes to `main` only, once `test` passes, builds the image from the
+   `Dockerfile` and pushes it to Docker Hub, tagged `latest` and with the commit SHA.
+
+The push job requires `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` to be configured as repository
+secrets (Settings → Secrets and variables → Actions) — it will fail until those are added.
+
+Docker Hub repository: <https://hub.docker.com/r/hackandquack/project-is218-module-14>
+
+## Project layout
+
+- `app/main.py` — FastAPI app: web routes, auth endpoints, and the calculations BREAD endpoints.
+- `app/models/calculation.py` — polymorphic SQLAlchemy models (Addition/Subtraction/
+  Multiplication/Division) with a factory method and per-type `get_result()`.
+- `app/schemas/calculation.py` — Pydantic request/response schemas and validation rules.
+- `templates/` + `static/` — Jinja2 templates and CSS/JS for the web UI.
+- `tests/unit`, `tests/integration`, `tests/e2e` — the three test layers described above.
+- `docs/` — module-by-module walkthroughs of how this project was built (course reference
+  material).
+
+## Further reading
+
+See `docs/00-course-overview.md` through `docs/08-containerization.md` for a guided walkthrough of
+how each part of this application (models, schemas, auth, API endpoints, frontend, testing, and
+containerization) was built.
