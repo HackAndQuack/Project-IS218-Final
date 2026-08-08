@@ -94,15 +94,19 @@ real deployments, but tests intentionally keep their own fast, disposable schema
 
 ## CI/CD
 
-`.github/workflows/ci.yml` runs on every push/PR to `main`:
+`.github/workflows/test.yml` runs on every push/PR to `main`, as three sequential jobs:
 
 1. **test** — installs dependencies, installs Playwright's Chromium browser, spins up a
-   PostgreSQL service container, and runs the full `pytest` suite.
-2. **docker-build-push** — on pushes to `main` only, once `test` passes, builds the image from the
-   `Dockerfile` and pushes it to Docker Hub, tagged `latest` and with the commit SHA.
+   PostgreSQL service container, and runs the full `pytest` suite (unit + integration + e2e).
+2. **security** — builds the Docker image and scans it with
+   [Trivy](https://github.com/aquasecurity/trivy) for HIGH/CRITICAL vulnerabilities
+   (`.trivyignore` documents the two findings that are false positives from pip's own vendored
+   dependencies, not this project's code).
+3. **deploy** — on pushes to `main` only, once `security` passes, builds and pushes the image to
+   Docker Hub via Buildx, tagged `latest` and with the commit SHA.
 
-The push job requires `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` to be configured as repository
-secrets (Settings → Secrets and variables → Actions) — it will fail until those are added.
+The deploy job requires `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` to be configured as repository
+secrets (Settings → Secrets and variables → Actions).
 
 Docker Hub repository: <https://hub.docker.com/r/hackandquack/project-is218-module-14>
 
@@ -122,3 +126,25 @@ Docker Hub repository: <https://hub.docker.com/r/hackandquack/project-is218-modu
 See `docs/00-course-overview.md` through `docs/08-containerization.md` for a guided walkthrough of
 how each part of this application (models, schemas, auth, API endpoints, frontend, testing, and
 containerization) was built.
+
+## Reflection
+
+For the final feature, I picked user profile & password change over the other options, mainly
+because `app/schemas/user.py` already had fully validated `UserUpdate` and `PasswordUpdate`
+schemas sitting unused in the codebase.
+
+I split the work into three branches (CI/CD fix, Alembic, then the feature), merging each before
+starting the next.
+
+A few surprises along the way:
+
+- Swapping in the "correct" auth dependency (a real DB-backed user lookup instead of one that
+  faked a user object from the JWT) immediately broke the app, because it activated a dormant
+  Redis-backed token blacklist check — and there's no Redis anywhere in this project. The two bugs
+  had been silently canceling each other out. I made that check fail open when Redis is
+  unreachable, consistent with the "optional" label already on that config setting.
+- Fixing the security scan meant bumping a few vulnerable dependencies, which pulled in a major
+  Starlette upgrade that changed how `TemplateResponse` is called.
+- Not every scanner finding is real: two Trivy results traced back to files vendored inside pip's
+  own internals, not anything the app actually uses. I verified that by hand before documenting the
+  exclusions in `.trivyignore`.
