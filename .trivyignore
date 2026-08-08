@@ -1,0 +1,13 @@
+# GHSA-6v7p-g79w-8964 (msgpack out-of-bounds read): flagged inside pip's own
+# vendored copy at pip/_vendor/msgpack, not a dependency of this project.
+# Even the latest pip release still ships an unpatched vendored copy, so this
+# cannot be remediated via requirements.txt. It's only used internally by pip
+# during package installs, not part of this app's runtime code path.
+GHSA-6v7p-g79w-8964
+
+# CVE-2025-47273 (setuptools path traversal): flagged from pip's internal
+# Software Bill of Materials metadata (pip/_vendor/bom.cdx.json), which
+# records setuptools 70.3.0 as a historical build provenance reference, not
+# an installed, importable copy. The project's actual setuptools (installed
+# via the Dockerfile) is 84.0.0+, well above the fixed version.
+CVE-2025-47273
